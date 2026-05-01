@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, FolderKanban, Users, Trash2, Edit2, X, Loader, Crown, Shield } from 'lucide-react'
+import { Plus, FolderKanban, Users, Trash2, Edit2, X, Loader, Crown, LogOut } from 'lucide-react'
 import { projectService } from '../services'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -156,6 +156,17 @@ export default function Projects() {
     }
   }
 
+  const handleLeave = async (projectId) => {
+    if (!window.confirm('Leave this project? You will lose access to all its tasks.')) return
+    try {
+      await projectService.removeMember(projectId, currentUser._id)
+      setProjects(prev => prev.filter(p => p._id !== projectId))
+      toast.success('You have left the project')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to leave project')
+    }
+  }
+
   // Get current user's role in a specific project
   const getMyProjectRole = (project) => {
     const me = project.members?.find(m => m.user?._id === currentUser?._id)
@@ -236,18 +247,31 @@ export default function Projects() {
                     </div>
                   </div>
 
-                  {isAdmin && (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => { setEditingProject(proj); setShowModal(true) }}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
-                        <Edit2 size={14} />
-                      </button>
-                      <button onClick={() => handleDelete(proj._id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isAdmin ? (
+                      <>
+                        <button onClick={() => { setEditingProject(proj); setShowModal(true) }}
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                          title="Edit project">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => handleDelete(proj._id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete project">
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    ) : (
+                      !isCreator && (
+                        <button
+                          onClick={() => handleLeave(proj._id)}
+                          className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                          title="Leave project">
+                          <LogOut size={14} />
+                        </button>
+                      )
+                    )}
+                  </div>
                 </div>
 
                 {proj.description && (

@@ -5,7 +5,7 @@ import {
   ArrowLeft, Plus, Users, Crown, Loader, X,
   CheckCircle2, Clock, AlertCircle, ListTodo,
   Calendar, LayoutGrid, List, Edit2, Trash2,
-  ChevronRight, Tag
+  ChevronRight, Tag, LogOut, UserMinus
 } from 'lucide-react'
 import { projectService, taskService } from '../services'
 import { useAuth } from '../context/AuthContext'
@@ -77,6 +77,7 @@ export default function ProjectDetail() {
 
   const myRole       = project?.members?.find(m => m.user?._id === currentUser?._id)?.role
   const isAdmin      = myRole === 'admin'
+  const isCreator    = project?.createdBy?._id === currentUser?._id || project?.createdBy === currentUser?._id
   const members      = project?.members?.map(m => m.user).filter(Boolean) || []
   const total        = tasks.length
   const done         = tasks.filter(t => t.status === 'done').length
@@ -113,6 +114,31 @@ export default function ProjectDetail() {
       setTasks(prev => prev.filter(t => t._id !== taskId))
       toast.success('Task deleted')
     } catch { toast.error('Failed to delete task') }
+  }
+
+  const handleLeaveProject = async () => {
+    if (!window.confirm('Leave this project? You will lose access to all its tasks.')) return
+    try {
+      await projectService.removeMember(id, currentUser._id)
+      toast.success('You have left the project')
+      window.location.href = '/projects'
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to leave project')
+    }
+  }
+
+  const handleRemoveMember = async (userId, memberName) => {
+    if (!window.confirm(`Remove ${memberName} from this project?`)) return
+    try {
+      await projectService.removeMember(id, userId)
+      setProject(prev => ({
+        ...prev,
+        members: prev.members.filter(m => (m.user?._id || m.user) !== userId)
+      }))
+      toast.success(`${memberName} removed from project`)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove member')
+    }
   }
 
   if (loading) return (
@@ -172,6 +198,13 @@ export default function ProjectDetail() {
             onClick={() => { setEditTask(null); setShowModal(true) }}
             className="btn-primary text-sm flex items-center gap-1.5 shrink-0">
             <Plus size={15} /> Add Task
+          </motion.button>
+        )}
+        {!isAdmin && !isCreator && myRole && (
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            onClick={handleLeaveProject}
+            className="text-sm flex items-center gap-1.5 px-4 py-2 rounded-xl border border-orange-200 dark:border-orange-900/50 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors shrink-0">
+            <LogOut size={15} /> Leave Project
           </motion.button>
         )}
       </div>
@@ -234,28 +267,42 @@ export default function ProjectDetail() {
           </h3>
         </div>
         <div className="flex flex-wrap gap-3">
-          {project.members?.map(m => (
-            <div key={m.user?._id} className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 dark:bg-dark-bg rounded-xl border border-gray-100 dark:border-dark-border">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                style={{ backgroundColor: project.color || '#2563EB' }}>
-                {m.user?.name?.charAt(0)?.toUpperCase()}
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-gray-800 dark:text-dark-text">{m.user?.name}</span>
-                  {m.role === 'admin' && <Crown size={11} className="text-violet-500" />}
+          {project.members?.map(m => {
+            const memberId = m.user?._id
+            const isProjectCreator = project.createdBy?._id === memberId || project.createdBy === memberId
+            const isMe = memberId === currentUser?._id
+            return (
+              <div key={memberId} className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 dark:bg-dark-bg rounded-xl border border-gray-100 dark:border-dark-border group">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                  style={{ backgroundColor: project.color || '#2563EB' }}>
+                  {m.user?.name?.charAt(0)?.toUpperCase()}
                 </div>
-                {m.user?.username && (
-                  <p className="text-xs text-primary-500">@{m.user.username}</p>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-gray-800 dark:text-dark-text">{m.user?.name}</span>
+                    {m.role === 'admin' && <Crown size={11} className="text-violet-500" />}
+                    {isMe && <span className="text-xs text-primary-500">(you)</span>}
+                  </div>
+                  {m.user?.username && (
+                    <p className="text-xs text-primary-500">@{m.user.username}</p>
+                  )}
+                </div>
+                <span className={`text-xs font-medium px-1.5 py-0.5 rounded capitalize ${
+                  m.role === 'admin'
+                    ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                    : 'bg-gray-200 dark:bg-dark-border text-gray-500 dark:text-dark-muted'
+                }`}>{m.role}</span>
+                {isAdmin && !isProjectCreator && !isMe && (
+                  <button
+                    onClick={() => handleRemoveMember(memberId, m.user?.name)}
+                    className="ml-1 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title={`Remove ${m.user?.name}`}>
+                    <UserMinus size={13} />
+                  </button>
                 )}
               </div>
-              <span className={`text-xs font-medium px-1.5 py-0.5 rounded capitalize ${
-                m.role === 'admin'
-                  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
-                  : 'bg-gray-200 dark:bg-dark-border text-gray-500 dark:text-dark-muted'
-              }`}>{m.role}</span>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </motion.div>
 

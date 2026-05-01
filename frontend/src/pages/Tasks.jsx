@@ -42,10 +42,24 @@ export default function Tasks() {
 
   useEffect(() => { fetchData() }, [filters])
 
-  // User is a project admin if they are admin in at least one of their projects
+  // Helper: is current user an admin in a specific project?
+  const isAdminInProject = (projectId) => {
+    const proj = projects.find(p => p._id === (projectId?._id || projectId))
+    return proj?.members?.some(m => m.user?._id === currentUser?._id && m.role === 'admin') ?? false
+  }
+
+  // Is admin in ANY project (controls "New Task" button)
   const isAdminInAnyProject = projects.some(proj =>
     proj.members?.some(m => m.user?._id === currentUser?._id && m.role === 'admin')
   )
+
+  // Can the current user change status of a task?
+  const canChangeStatus = (task) => {
+    const assignedId = task.assignedTo?._id || task.assignedTo
+    const isAssignedToMe = assignedId && assignedId.toString() === currentUser?._id
+    const isAdmin = isAdminInProject(task.projectId)
+    return isAssignedToMe || isAdmin
+  }
 
   const handleSave = async (formData) => {
     try {
@@ -76,7 +90,11 @@ export default function Tasks() {
     }
   }
 
-  const handleStatusChange = async (taskId, newStatus) => {
+  const handleStatusChange = async (taskId, newStatus, task) => {
+    if (!canChangeStatus(task)) {
+      toast.error('You can only change the status of tasks assigned to you')
+      return
+    }
     setTaskList(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t))
     try {
       await taskService.update(taskId, { status: newStatus })
@@ -111,7 +129,11 @@ export default function Tasks() {
       >
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-text">Tasks</h1>
-          <p className="text-sm text-gray-500 dark:text-dark-muted mt-1">Manage and track all your tasks</p>
+          <p className="text-sm text-gray-500 dark:text-dark-muted mt-1">
+            {isAdminInAnyProject
+              ? 'Manage and track tasks across your projects'
+              : 'Tasks assigned to you'}
+          </p>
         </div>
         {isAdminInAnyProject && (
           <motion.button
@@ -189,73 +211,83 @@ export default function Tasks() {
                 <tr>
                   <td colSpan={7} className="text-center py-16 text-gray-400 dark:text-dark-muted">No tasks found</td>
                 </tr>
-              ) : taskList.map((task, index) => (
-                <motion.tr
-                  key={task._id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.05 * index }}
-                  className="border-b border-gray-50 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-border/30 transition-colors group"
-                >
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-gray-800 dark:text-dark-text">{task.title}</p>
-                    {task.description && (
-                      <p className="text-xs text-gray-400 dark:text-dark-muted mt-0.5 truncate max-w-[200px]">{task.description}</p>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 hidden sm:table-cell">
-                    {task.assignedTo ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold">
-                          {task.assignedTo.name.charAt(0)}
+              ) : taskList.map((task, index) => {
+                const taskIsAdminProject = isAdminInProject(task.projectId)
+                const statusChangeable = canChangeStatus(task)
+                return (
+                  <motion.tr
+                    key={task._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.05 * index }}
+                    className="border-b border-gray-50 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-border/30 transition-colors group"
+                  >
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-gray-800 dark:text-dark-text">{task.title}</p>
+                      {task.description && (
+                        <p className="text-xs text-gray-400 dark:text-dark-muted mt-0.5 truncate max-w-[200px]">{task.description}</p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 hidden sm:table-cell">
+                      {task.assignedTo ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold">
+                            {task.assignedTo.name.charAt(0)}
+                          </div>
+                          <span className="text-gray-600 dark:text-dark-text">{task.assignedTo.name}</span>
                         </div>
-                        <span className="text-gray-600 dark:text-dark-text">{task.assignedTo.name}</span>
-                      </div>
-                    ) : <span className="text-gray-400 dark:text-dark-muted">—</span>}
-                  </td>
-                  <td className="px-6 py-4">
-                    <select
-                      value={task.status}
-                      onChange={e => handleStatusChange(task._id, e.target.value)}
-                      className={`text-xs font-medium px-2 py-1 rounded-full border-0 focus:outline-none cursor-pointer ${statusMap[task.status]}`}
-                    >
-                      <option value="todo">To Do</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="done">Done</option>
-                      <option value="overdue">Overdue</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 hidden lg:table-cell">
-                    {task.dueDate ? (
-                      <span className={`text-xs ${isPast(new Date(task.dueDate)) && task.status !== 'done' ? 'text-red-500 font-medium' : 'text-gray-500 dark:text-dark-muted'}`}>
-                        {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                      ) : <span className="text-gray-400 dark:text-dark-muted">—</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {statusChangeable ? (
+                        <select
+                          value={task.status}
+                          onChange={e => handleStatusChange(task._id, e.target.value, task)}
+                          className={`text-xs font-medium px-2 py-1 rounded-full border-0 focus:outline-none cursor-pointer ${statusMap[task.status]}`}
+                        >
+                          <option value="todo">To Do</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="done">Done</option>
+                          <option value="overdue">Overdue</option>
+                        </select>
+                      ) : (
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusMap[task.status]}`}>
+                          {task.status === 'in-progress' ? 'In Progress' : task.status === 'todo' ? 'To Do' : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 hidden lg:table-cell">
+                      {task.dueDate ? (
+                        <span className={`text-xs ${isPast(new Date(task.dueDate)) && task.status !== 'done' ? 'text-red-500 font-medium' : 'text-gray-500 dark:text-dark-muted'}`}>
+                          {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                        </span>
+                      ) : <span className="text-gray-300 dark:text-dark-border">—</span>}
+                    </td>
+                    <td className="px-6 py-4 hidden lg:table-cell">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${priorityMap[task.priority]}`}>
+                        {task.priority}
                       </span>
-                    ) : <span className="text-gray-300 dark:text-dark-border">—</span>}
-                  </td>
-                  <td className="px-6 py-4 hidden lg:table-cell">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${priorityMap[task.priority]}`}>
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 hidden sm:table-cell">
-                    <span className="text-gray-500 dark:text-dark-muted text-sm">{task.projectId?.title || '—'}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    {isAdminInAnyProject && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditingTask(task); setShowModal(true) }}
-                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(task._id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 hidden sm:table-cell">
+                      <span className="text-gray-500 dark:text-dark-muted text-sm">{task.projectId?.title || '—'}</span>
+                    </td>
+                    <td className="px-4 py-4">
+                      {taskIsAdminProject && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { setEditingTask(task); setShowModal(true) }}
+                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={() => handleDelete(task._id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </motion.tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -268,7 +300,7 @@ export default function Tasks() {
             onSave={handleSave}
             editTask={editingTask}
             users={users}
-            projects={projects}
+            projects={projects.filter(p => p.members?.some(m => m.user?._id === currentUser?._id && m.role === 'admin'))}
           />
         )}
       </AnimatePresence>
