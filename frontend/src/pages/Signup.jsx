@@ -150,26 +150,6 @@ export default function Signup() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const token = params.get('token')
-    const userStr = params.get('user')
-    const error = params.get('error')
-
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(decodeURIComponent(userStr))
-        login(token, user)
-        toast.success(`Welcome, ${user.name}!`)
-        navigate('/dashboard')
-      } catch (err) {
-        toast.error('Authentication failed')
-      }
-    } else if (error) {
-      toast.error('Google signup failed')
-    }
-  }, [login, navigate])
-
   const handleGoogleLogin = () => {
     const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
     window.location.href = `${apiUrl}/api/auth/google`;

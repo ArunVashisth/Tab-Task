@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { authService } from '../services'
@@ -12,26 +12,6 @@ export default function Login() {
   const [errors, setErrors] = useState({})
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-
-  useEffect(() => {
-    const token = searchParams.get('token')
-    const userStr = searchParams.get('user')
-    const error = searchParams.get('error')
-
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(decodeURIComponent(userStr))
-        login(token, user)
-        toast.success(`Welcome, ${user.name}!`)
-        navigate('/dashboard')
-      } catch (err) {
-        toast.error('Authentication failed')
-      }
-    } else if (error) {
-      toast.error('Google login failed')
-    }
-  }, [searchParams, login, navigate])
 
   const handleGoogleLogin = () => {
     const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
