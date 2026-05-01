@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, FolderKanban, Users, Trash2, Edit2, X, Loader, Crown, LogOut } from 'lucide-react'
 import { projectService } from '../services'
+import { BACKEND_URL } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
@@ -282,9 +283,17 @@ export default function Projects() {
                   <div className="flex -space-x-2">
                     {proj.members?.slice(0, 4).map((m, idx) => (
                       <div key={m.user?._id || idx} title={`${m.user?.name} (${m.role})`}
-                        className="w-7 h-7 rounded-full border-2 border-white dark:border-dark-card flex items-center justify-center text-white text-xs font-semibold"
+                        className="w-7 h-7 rounded-full border-2 border-white dark:border-dark-card overflow-hidden flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
                         style={{ backgroundColor: proj.color, zIndex: 4 - idx }}>
-                        {m.user?.name?.charAt(0)?.toUpperCase()}
+                        {m.user?.avatar ? (
+                          <img
+                            src={m.user.avatar.startsWith('http') ? m.user.avatar : `${BACKEND_URL}${m.user.avatar}`}
+                            alt={m.user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          m.user?.name?.charAt(0)?.toUpperCase()
+                        )}
                       </div>
                     ))}
                     {proj.members?.length > 4 && (

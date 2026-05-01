@@ -5,6 +5,9 @@ if (baseURL.startsWith('http') && !baseURL.endsWith('/api')) {
   baseURL = baseURL.replace(/\/$/, '') + '/api';
 }
 
+export const API_URL = baseURL;
+export const BACKEND_URL = baseURL.replace(/\/api$/, '');
+
 const api = axios.create({
   baseURL,
   headers: { 'Content-Type': 'application/json' }

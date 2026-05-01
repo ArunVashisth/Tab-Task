@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Filter, Trash2, Edit2 } from 'lucide-react'
 import { taskService, projectService, userService } from '../services'
+import { BACKEND_URL } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { format, isPast } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -231,8 +232,16 @@ export default function Tasks() {
                     <td className="px-6 py-4 hidden sm:table-cell">
                       {task.assignedTo ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold">
-                            {task.assignedTo.name.charAt(0)}
+                          <div className="w-7 h-7 rounded-full overflow-hidden bg-primary-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                            {task.assignedTo.avatar ? (
+                              <img
+                                src={task.assignedTo.avatar.startsWith('http') ? task.assignedTo.avatar : `${BACKEND_URL}${task.assignedTo.avatar}`}
+                                alt={task.assignedTo.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              task.assignedTo.name.charAt(0)
+                            )}
                           </div>
                           <span className="text-gray-600 dark:text-dark-text">{task.assignedTo.name}</span>
                         </div>

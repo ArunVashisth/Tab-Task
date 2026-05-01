@@ -8,6 +8,7 @@ import {
   ChevronRight, Tag, LogOut, UserMinus
 } from 'lucide-react'
 import { projectService, taskService } from '../services'
+import { BACKEND_URL } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { format, isPast, isToday, formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -273,9 +274,17 @@ export default function ProjectDetail() {
             const isMe = memberId === currentUser?._id
             return (
               <div key={memberId} className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 dark:bg-dark-bg rounded-xl border border-gray-100 dark:border-dark-border group">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white text-sm font-bold shrink-0"
                   style={{ backgroundColor: project.color || '#2563EB' }}>
-                  {m.user?.name?.charAt(0)?.toUpperCase()}
+                  {m.user?.avatar ? (
+                    <img
+                      src={m.user.avatar.startsWith('http') ? m.user.avatar : `${BACKEND_URL}${m.user.avatar}`}
+                      alt={m.user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    m.user?.name?.charAt(0)?.toUpperCase()
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
@@ -380,8 +389,16 @@ export default function ProjectDetail() {
                                     </span>
                                     {task.assignedTo && (
                                       <div title={task.assignedTo.name}
-                                        className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-400 to-violet-700 flex items-center justify-center text-white text-xs font-bold">
-                                        {task.assignedTo.name[0].toUpperCase()}
+                                        className="w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-violet-400 to-violet-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                        {task.assignedTo.avatar ? (
+                                          <img
+                                            src={task.assignedTo.avatar.startsWith('http') ? task.assignedTo.avatar : `${BACKEND_URL}${task.assignedTo.avatar}`}
+                                            alt={task.assignedTo.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          task.assignedTo.name[0].toUpperCase()
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -461,8 +478,16 @@ export default function ProjectDetail() {
                       <td className="px-5 py-3.5">
                         {task.assignedTo ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-xs font-bold">
-                              {task.assignedTo.name[0].toUpperCase()}
+                            <div className="w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                              {task.assignedTo.avatar ? (
+                                <img
+                                  src={task.assignedTo.avatar.startsWith('http') ? task.assignedTo.avatar : `${BACKEND_URL}${task.assignedTo.avatar}`}
+                                  alt={task.assignedTo.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                task.assignedTo.name[0].toUpperCase()
+                              )}
                             </div>
                             <span className="text-gray-600 dark:text-dark-text text-sm">{task.assignedTo.name}</span>
                           </div>

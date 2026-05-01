@@ -2,12 +2,11 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { userService } from '../services'
+import { BACKEND_URL } from '../services/api'
 import { User, Mail, Calendar, AtSign, Camera, Trash2, Loader, Eye, EyeOff } from 'lucide-react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import CropModal from '../components/CropModal'
-
-
 
 // ── Avatar Section ──────────────────────────────────────────────────────────
 function AvatarSection({ currentUser, onUpdate }) {
@@ -24,7 +23,9 @@ function AvatarSection({ currentUser, onUpdate }) {
   const [uploading, setUploading] = useState(false)
   const [removing, setRemoving]   = useState(false)
 
-  const savedAvatarSrc = currentUser?.avatar ? currentUser.avatar : null
+  const savedAvatarSrc = currentUser?.avatar
+    ? (currentUser.avatar.startsWith('http') ? currentUser.avatar : `${BACKEND_URL}${currentUser.avatar}`)
+    : null
   const displaySrc     = previewUrl || savedAvatarSrc   // show preview while pending, else saved
 
   const initials = currentUser?.name

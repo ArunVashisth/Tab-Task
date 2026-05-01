@@ -5,6 +5,7 @@ import { Bell, Search, ChevronDown, LogOut, User, Settings, Menu, Check, X, Fold
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { invitationService, projectService, taskService } from '../services'
+import { BACKEND_URL } from '../services/api'
 import toast from 'react-hot-toast'
 
 
@@ -125,7 +126,9 @@ export default function Navbar({ onMenuClick }) {
   const goToResult = (path) => { navigate(path); clear() }
 
   const initials   = currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'
-  const avatarSrc  = currentUser?.avatar ? currentUser.avatar : null
+  const avatarSrc  = currentUser?.avatar
+    ? (currentUser.avatar.startsWith('http') ? currentUser.avatar : `${BACKEND_URL}${currentUser.avatar}`)
+    : null
   const displayName = currentUser?.username ? `@${currentUser.username}` : currentUser?.name
   const pendingCount = invitations.length
   const hasResults  = results.projects.length > 0 || results.tasks.length > 0

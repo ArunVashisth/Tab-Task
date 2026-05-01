@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Shield, User, Mail, Search, Send, Loader, X, ChevronDown, Crown } from 'lucide-react'
 import { userService, invitationService, projectService } from '../services'
+import { BACKEND_URL } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -308,15 +309,23 @@ export default function Team() {
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {collaborators.map((member, index) => (
-            <motion.div key={member._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.07 * index }} whileHover={{ y: -5, scale: 1.02 }}
-              className="card p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-xl font-bold">
-                  {member.name.charAt(0).toUpperCase()}
-                </div>
-              </div>
+            {collaborators.map((member, index) => {
+              const avatarSrc = member.avatar
+                ? (member.avatar.startsWith('http') ? member.avatar : `${BACKEND_URL}${member.avatar}`)
+                : null
+              return (
+                <motion.div key={member._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.07 * index }} whileHover={{ y: -5, scale: 1.02 }}
+                  className="card p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 text-white text-xl font-bold shrink-0">
+                      {avatarSrc ? (
+                        <img src={avatarSrc} alt={member.name} className="w-full h-full object-cover" />
+                      ) : (
+                        member.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                  </div>
 
               <h3 className="font-semibold text-gray-900 dark:text-dark-text mb-0.5">
                 {member.name}
@@ -335,7 +344,7 @@ export default function Team() {
                 </p>
               </div>
             </motion.div>
-          ))}
+          )})}
         </div>
       )}
 
