@@ -2,6 +2,7 @@ import { NavLink, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { LayoutDashboard, FolderKanban, CheckSquare, Users, Settings, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { BACKEND_URL } from '../services/api'
 
 
 
@@ -18,7 +19,9 @@ export default function Sidebar({ isOpen, onClose }) {
   const initials = currentUser?.name
     ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U'
-  const avatarSrc = currentUser?.avatar ? currentUser.avatar : null
+  const avatarSrc = currentUser?.avatar
+    ? (currentUser.avatar.startsWith('http') ? currentUser.avatar : `${BACKEND_URL}${currentUser.avatar}`)
+    : null
 
   return (
     <>
