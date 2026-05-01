@@ -179,4 +179,19 @@ const getMe = async (req, res) => {
   res.json(formatUser(req.user));
 };
 
-module.exports = { signup, verifyOTP, resendOTP, login, getMe };
+const googleCallback = async (req, res) => {
+  try {
+    const token = signToken(req.user._id);
+    const userData = formatUser(req.user);
+    const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:5173';
+    
+    // Redirect back to frontend with token and user data in query params
+    // The frontend will handle saving this to localStorage
+    res.redirect(`${frontendUrl}/login?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`);
+  } catch (err) {
+    console.error('Google callback error:', err);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
+  }
+};
+
+module.exports = { signup, verifyOTP, resendOTP, login, getMe, googleCallback };
