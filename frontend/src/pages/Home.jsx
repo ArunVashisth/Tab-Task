@@ -21,8 +21,6 @@ export default function Home() {
 
           <div className="hidden md:flex items-center gap-10">
             <a href="#features" className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">Features</a>
-            <a href="#solutions" className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">Solutions</a>
-            <a href="#pricing" className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">Pricing</a>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -47,8 +45,6 @@ export default function Home() {
               className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 p-6 flex flex-col gap-6 shadow-xl"
             >
               <a href="#features" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>Features</a>
-              <a href="#solutions" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>Solutions</a>
-              <a href="#pricing" className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>Pricing</a>
               <div className="h-px bg-gray-100" />
               <Link to="/login" className="text-lg font-medium">Log in</Link>
               <Link to="/signup" className="py-4 bg-blue-600 text-white text-center font-bold rounded-xl">Get Started free</Link>
