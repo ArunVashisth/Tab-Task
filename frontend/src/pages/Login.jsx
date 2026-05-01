@@ -1,0 +1,185 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
+import { authService } from '../services'
+import { CheckCircle2, Mail, Lock, ArrowRight } from 'lucide-react'
+import toast from 'react-hot-toast'
+
+export default function Login() {
+  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const { login } = useAuth()
+  const navigate = useNavigate()
+
+  const validate = () => {
+    const errs = {}
+    if (!formData.email) errs.email = 'Email is required'
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Enter a valid email'
+    if (!formData.password) errs.password = 'Password is required'
+    return errs
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    const errs = validate()
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setLoading(true)
+    try {
+      const res = await authService.login(formData)
+      login(res.data.token, res.data.user)
+      toast.success(`Welcome back, ${res.data.user.name}!`)
+      navigate('/dashboard')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    if (errors[e.target.name]) setErrors(prev => ({ ...prev, [e.target.name]: '' }))
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f8fafc] flex relative overflow-hidden font-sans">
+      {/* Subtle radial gradient background */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-100/40 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Left Column */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 lg:p-20 relative z-10">
+        <div>
+          <div className="flex items-center mb-4">
+            <img src="/logo.png" alt="Logo" className="h-20 w-auto object-contain object-left scale-125 origin-left" />
+          </div>
+        </div>
+
+        <div className="max-w-xl">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+            className="text-5xl lg:text-[56px] font-bold text-gray-900 leading-[1.1] mb-6"
+          >
+            Empower your team with seamless collaboration
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-lg text-gray-600 mb-10 leading-relaxed"
+          >
+            Join thousands of organizations streamlining their workflows with TAB TASK's intelligent project management platform.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+            className="grid grid-cols-2 gap-y-4 gap-x-8 mb-12"
+          >
+            {[
+              'Real-time collaboration', 'Advanced analytics',
+              'Secure & compliant', '24/7 support'
+            ].map(feature => (
+              <div key={feature} className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className="text-blue-600 shrink-0" />
+                <span className="text-sm font-medium text-gray-700">{feature}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          <div className="h-px bg-gradient-to-r from-gray-200 to-transparent mb-10" />
+
+
+        </div>
+
+        <div className="mt-8">
+          <p className="text-xs font-medium text-gray-400 mb-4">Trusted by leading organizations worldwide</p>
+          <div className="flex items-center gap-8 opacity-40 grayscale">
+            <span className="font-bold text-xl">SmartResQ</span>
+            <span className="font-bold text-xl font-serif">TechGather</span>
+            <span className="font-bold text-xl tracking-widest">ExpressKart</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12 relative z-10">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex flex-col items-center mb-10">
+          <img src="/logo.png" alt="Logo" className="h-16 w-auto object-contain scale-125" />
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}
+          className="w-full max-w-[440px] bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] p-8 sm:p-10"
+        >
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
+            <p className="text-gray-500 text-sm">Sign in to your account to continue</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="email" name="email" type="email" autoComplete="email"
+                  value={formData.email} onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.email ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
+                  placeholder="name@company.com"
+                />
+              </div>
+              {errors.email && <p className="mt-1 text-xs text-red-500 font-medium">{errors.email}</p>}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700">Password</label>
+                <button type="button" className="text-sm font-medium text-blue-600 hover:text-blue-700">Forgot password?</button>
+              </div>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="password" name="password" type="password" autoComplete="current-password"
+                  value={formData.password} onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.password ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
+                  placeholder="Enter your password"
+                />
+              </div>
+              {errors.password && <p className="mt-1 text-xs text-red-500 font-medium">{errors.password}</p>}
+            </div>
+
+            <div className="flex items-center pt-1 pb-2">
+              <input
+                id="remember" type="checkbox"
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="remember" className="ml-2 text-sm text-gray-600 cursor-pointer">
+                Remember me for 30 days
+              </label>
+            </div>
+
+            <button
+              type="submit" disabled={loading}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-70"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>Sign in to your account <ArrowRight size={16} /></>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p className="text-sm text-gray-500">
+              Don't have an account?{' '}
+              <Link to="/signup" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Start free trial
+              </Link>
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  )
+}
