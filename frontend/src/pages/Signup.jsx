@@ -147,8 +147,14 @@ export default function Signup() {
   const [showOTP, setShowOTP] = useState(location.state?.showOTP || false)
   const [otp, setOtp] = useState('')
   const [modalContent, setModalContent] = useState(null)
-  const { login } = useAuth()
+  const { currentUser, login } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard')
+    }
+  }, [currentUser, navigate])
 
   const handleGoogleLogin = () => {
     const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
