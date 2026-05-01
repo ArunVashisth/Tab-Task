@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { authService } from '../services'
-import { Zap, Users, BarChart2, Mail, Lock, User, ArrowRight, X } from 'lucide-react'
+import { Zap, Users, BarChart2, Mail, Lock, User, ArrowRight, X, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const termsText = (
@@ -135,9 +135,17 @@ const privacyText = (
 )
 
 export default function Signup() {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', terms: false })
+  const location = useLocation()
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    email: location.state?.email || '', 
+    password: '', 
+    terms: true 
+  })
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
+  const [showOTP, setShowOTP] = useState(location.state?.showOTP || false)
+  const [otp, setOtp] = useState('')
   const [modalContent, setModalContent] = useState(null)
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -160,12 +168,42 @@ export default function Signup() {
     setLoading(true)
     try {
       const { terms, ...signupData } = formData
-      const res = await authService.signup(signupData)
+      await authService.signup(signupData)
+      setShowOTP(true)
+      toast.success('Verification code sent to your email!')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Signup failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault()
+    if (!otp || otp.length !== 6) {
+      toast.error('Please enter a valid 6-digit code')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await authService.verifyOTP({ email: formData.email, otp })
       login(res.data.token, res.data.user)
       toast.success(`Welcome to TAB TASK, ${res.data.user.name}!`)
       navigate('/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Signup failed')
+      toast.error(err.response?.data?.message || 'Verification failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendOTP = async () => {
+    setLoading(true)
+    try {
+      await authService.resendOTP({ email: formData.email })
+      toast.success('New code sent to your email!')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend code')
     } finally {
       setLoading(false)
     }
@@ -244,83 +282,140 @@ export default function Signup() {
           initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}
           className="w-full max-w-[440px] bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] p-8 sm:p-10 my-auto"
         >
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
-            <p className="text-gray-500 text-sm">Start managing projects like a pro</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-1.5">Full name</label>
-              <div className="relative">
-                <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  id="name" name="name" type="text"
-                  value={formData.name} onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.name ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
-                  placeholder="John Doe"
-                />
+          {!showOTP ? (
+            <>
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
+                <p className="text-gray-500 text-sm">Start managing projects like a pro</p>
               </div>
-              {errors.name && <p className="mt-1 text-xs text-red-500 font-medium">{errors.name}</p>}
-            </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">Work email</label>
-              <div className="relative">
-                <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  id="email" name="email" type="email"
-                  value={formData.email} onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.email ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
-                  placeholder="name@company.com"
-                />
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-1.5">Full name</label>
+                  <div className="relative">
+                    <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      id="name" name="name" type="text"
+                      value={formData.name} onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.name ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  {errors.name && <p className="mt-1 text-xs text-red-500 font-medium">{errors.name}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">Work email</label>
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      id="email" name="email" type="email"
+                      value={formData.email} onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.email ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
+                      placeholder="name@company.com"
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-xs text-red-500 font-medium">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      id="password" name="password" type="password"
+                      value={formData.password} onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.password ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
+                      placeholder="Create a strong password"
+                    />
+                  </div>
+                  {errors.password ? (
+                    <p className="mt-1 text-xs text-red-500 font-medium">{errors.password}</p>
+                  ) : (
+                    <p className="mt-1.5 text-[13px] text-gray-500">Must be at least 8 characters</p>
+                  )}
+                </div>
+
+                <div className="flex items-start pt-2">
+                  <input
+                    id="terms" name="terms" type="checkbox"
+                    checked={formData.terms} onChange={handleChange}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <label htmlFor="terms" className="ml-2.5 text-sm text-gray-600">
+                    I agree to the <button type="button" onClick={() => setModalContent('terms')} className="font-semibold text-blue-600 hover:underline">Terms of Service</button> and <button type="button" onClick={() => setModalContent('privacy')} className="font-semibold text-blue-600 hover:underline">Privacy Policy</button>
+                  </label>
+                </div>
+                {errors.terms && <p className="mt-1 text-xs text-red-500 font-medium ml-6">{errors.terms}</p>}
+
+                <button
+                  type="submit" disabled={loading}
+                  className="w-full py-3 mt-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-70"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>Get started free <ArrowRight size={16} /></>
+                  )}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <ShieldCheck size={32} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
+                <p className="text-gray-500 text-sm">
+                  We've sent a 6-digit verification code to <span className="font-semibold text-gray-900">{formData.email}</span>
+                </p>
               </div>
-              {errors.email && <p className="mt-1 text-xs text-red-500 font-medium">{errors.email}</p>}
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  id="password" name="password" type="password"
-                  value={formData.password} onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.password ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-sm`}
-                  placeholder="Create a strong password"
-                />
-              </div>
-              {errors.password ? (
-                <p className="mt-1 text-xs text-red-500 font-medium">{errors.password}</p>
-              ) : (
-                <p className="mt-1.5 text-[13px] text-gray-500">Must be at least 8 characters</p>
-              )}
-            </div>
+              <form onSubmit={handleVerifyOTP} className="space-y-6">
+                <div>
+                  <label htmlFor="otp" className="block text-sm font-semibold text-gray-700 text-center mb-4">Verification Code</label>
+                  <input
+                    id="otp" type="text" maxLength={6}
+                    value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    className="w-full text-center tracking-[1em] text-2xl font-bold py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                    placeholder="000000"
+                    autoFocus
+                  />
+                </div>
 
-            <div className="flex items-start pt-2">
-              <input
-                id="terms" name="terms" type="checkbox"
-                checked={formData.terms} onChange={handleChange}
-                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-              />
-              <label htmlFor="terms" className="ml-2.5 text-sm text-gray-600">
-                I agree to the <button type="button" onClick={() => setModalContent('terms')} className="font-semibold text-blue-600 hover:underline">Terms of Service</button> and <button type="button" onClick={() => setModalContent('privacy')} className="font-semibold text-blue-600 hover:underline">Privacy Policy</button>
-              </label>
-            </div>
-            {errors.terms && <p className="mt-1 text-xs text-red-500 font-medium ml-6">{errors.terms}</p>}
+                <button
+                  type="submit" disabled={loading || otp.length !== 6}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>Verify Account <ArrowRight size={18} /></>
+                  )}
+                </button>
 
-            <button
-              type="submit" disabled={loading}
-              className="w-full py-3 mt-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-70"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>Get started free <ArrowRight size={16} /></>
-              )}
-            </button>
-          </form>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-2">Didn't receive the code?</p>
+                  <button
+                    type="button" onClick={handleResendOTP} disabled={loading}
+                    className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    Resend Verification Code
+                  </button>
+                </div>
 
-          <div className="mt-8 text-center">
+                <button
+                  type="button" onClick={() => setShowOTP(false)}
+                  className="w-full text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  ← Back to signup
+                </button>
+              </form>
+            </>
+          )}
+
+          <div className="mt-8 text-center border-t border-gray-50 pt-6">
             <p className="text-sm text-gray-500">
               Already have an account?{' '}
               <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
@@ -356,7 +451,7 @@ export default function Signup() {
                 {modalContent === 'terms' ? termsText : privacyText}
               </div>
               <div className="p-6 border-t border-gray-100 flex justify-end">
-                <button onClick={() => setModalContent(null)} className="btn-primary py-2 px-6">
+                <button onClick={() => setModalContent(null)} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl text-sm">
                   I Understand
                 </button>
               </div>

@@ -32,7 +32,12 @@ export default function Login() {
       toast.success(`Welcome back, ${res.data.user.name}!`)
       navigate('/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed')
+      if (err.response?.status === 403 && err.response?.data?.isUnverified) {
+        toast.error('Please verify your account first')
+        navigate('/signup', { state: { email: formData.email, showOTP: true } })
+      } else {
+        toast.error(err.response?.data?.message || 'Login failed')
+      }
     } finally {
       setLoading(false)
     }
